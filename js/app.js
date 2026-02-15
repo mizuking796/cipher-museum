@@ -97,6 +97,19 @@ const App = (() => {
       </div>`;
   }
 
+  // ---- ウェルカム解説パネル ----
+  function renderWelcomeInfo() {
+    const panel = document.getElementById('infoPanel');
+    panel.innerHTML = `<div class="info-section">
+      <div class="info-section-title">📖 Cipher Museum</div>
+      <div class="info-section-content">
+        <p>古今東西の暗号と古代文字を体験する博物館です。</p>
+        <p>左のメニューから方式を選んで、テキストを変換してみましょう。</p>
+        <p>各方式の歴史や仕組みもこのパネルに表示されます。</p>
+      </div>
+    </div>`;
+  }
+
   // ---- エンジン選択 ----
   function selectEngine(engine) {
     currentEngine = engine;
@@ -371,6 +384,13 @@ const App = (() => {
       // コピーボタン
       if (e.target.closest('#btnCopy') && !e.target.closest('#btnToInput')) {
         copyOutput();
+      }
+      // ヘッダーロゴ→トップ
+      if (e.target.closest('#headerHome')) {
+        currentEngine = null;
+        document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+        showWelcome();
+        renderWelcomeInfo();
       }
       // モバイルサイドバートグル
       if (e.target.closest('#sidebarToggle')) {

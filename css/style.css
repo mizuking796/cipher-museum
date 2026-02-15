@@ -48,6 +48,14 @@ body {
   z-index: 100;
 }
 
+.header-home {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
 .header-logo {
   font-size: 24px;
   line-height: 1;
@@ -63,7 +71,6 @@ body {
 .header-subtitle {
   font-size: 11px;
   color: var(--text-muted);
-  margin-left: 8px;
 }
 
 .header-spacer { flex: 1; }
