@@ -3,7 +3,7 @@
 // ============================================================
 
 const Gojuon = (() => {
-  // 清音46文字
+  // 80文字（清音46 + 濁音20 + 半濁音5 + 小書き9）
   const KANA = [
     'あ','い','う','え','お',
     'か','き','く','け','こ',
@@ -12,43 +12,26 @@ const Gojuon = (() => {
     'な','に','ぬ','ね','の',
     'は','ひ','ふ','へ','ほ',
     'ま','み','む','め','も',
-    'や','ゆ','よ',
-    'ら','り','る','れ','ろ',
-    'わ','を','ん'
+    'や','ゆ','よ','ら','り',
+    'る','れ','ろ','わ','を',
+    'ん','が','ぎ','ぐ','げ',
+    'ご','ざ','じ','ず','ぜ',
+    'ぞ','だ','ぢ','づ','で',
+    'ど','ば','び','ぶ','べ',
+    'ぼ','ぱ','ぴ','ぷ','ぺ',
+    'ぽ','ぁ','ぃ','ぅ','ぇ',
+    'ぉ','っ','ゃ','ゅ','ょ'
   ];
 
-  const SIZE = KANA.length; // 46
+  const SIZE = KANA.length; // 80
 
-  // 五十音表グリッド（10行×5列）— ポリュビオス/タップコード用
-  const GRID = [
-    ['あ','い','う','え','お'],
-    ['か','き','く','け','こ'],
-    ['さ','し','す','せ','そ'],
-    ['た','ち','つ','て','と'],
-    ['な','に','ぬ','ね','の'],
-    ['は','ひ','ふ','へ','ほ'],
-    ['ま','み','む','め','も'],
-    ['や','ゆ','よ','ー','ー'],
-    ['ら','り','る','れ','ろ'],
-    ['わ','を','ん','ー','ー']
-  ];
+  // グリッド列数（ポリュビオス/タップコード用）
+  const GRID_COLS = 5;
 
-  // 濁音・半濁音マップ
-  const DAKUTEN_MAP = {
-    'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ',
-    'ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ',
-    'だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と',
-    'ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ',
-    'ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ'
-  };
-  const DAKUTEN_REVERSE = {};
-  const HANDAKUTEN_REVERSE = {};
-  for (const [d, c] of Object.entries(DAKUTEN_MAP)) {
-    if (d.charCodeAt(0) >= 'ぱ'.charCodeAt(0) && d.charCodeAt(0) <= 'ぽ'.charCodeAt(0)) {
-      if (!HANDAKUTEN_REVERSE[c]) HANDAKUTEN_REVERSE[c] = d;
-    } else {
-      if (!DAKUTEN_REVERSE[c]) DAKUTEN_REVERSE[c] = d;
-    }
+  // 五十音表グリッド（16行×5列）— KANA配列から自動生成
+  const GRID = [];
+  for (let i = 0; i < SIZE; i += GRID_COLS) {
+    GRID.push(KANA.slice(i, i + GRID_COLS));
   }
 
   // ローマ字変換テーブル（ヘボン式）
@@ -68,6 +51,8 @@ const Gojuon = (() => {
     'だ':'da','ぢ':'di','づ':'du','で':'de','ど':'do',
     'ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
     'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
+    'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o',
+    'っ':'','ゃ':'ya','ゅ':'yu','ょ':'yo',
     'きゃ':'kya','きゅ':'kyu','きょ':'kyo',
     'しゃ':'sha','しゅ':'shu','しょ':'sho',
     'ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
@@ -79,7 +64,7 @@ const Gojuon = (() => {
     'じゃ':'ja','じゅ':'ju','じょ':'jo',
     'びゃ':'bya','びゅ':'byu','びょ':'byo',
     'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
-    'ー':'-','っ':''
+    'ー':'-'
   };
 
   // カタカナ→ひらがな変換
@@ -96,10 +81,9 @@ const Gojuon = (() => {
     );
   }
 
-  // 文字→インデックス（清音ベース。濁音/半濁音は清音に正規化）
+  // 文字→インデックス（全80文字直接対応）
   function charToIndex(ch) {
-    let c = DAKUTEN_MAP[ch] || ch;
-    return KANA.indexOf(c);
+    return KANA.indexOf(ch);
   }
 
   // インデックス→文字
@@ -122,24 +106,6 @@ const Gojuon = (() => {
   function isKatakana(ch) {
     const code = ch.charCodeAt(0);
     return (code >= 0x30A1 && code <= 0x30F6) || ch === '\u30FC';
-  }
-
-  // 濁音情報を保持して清音化→変換後に復元するヘルパー
-  function preserveDakuten(ch) {
-    if (DAKUTEN_MAP[ch]) {
-      const base = DAKUTEN_MAP[ch];
-      const isDakuten = ch.charCodeAt(0) < 'ぱ'.charCodeAt(0) ||
-                        ch.charCodeAt(0) > 'ぽ'.charCodeAt(0);
-      return { base, type: isDakuten ? 'dakuten' : 'handakuten' };
-    }
-    return { base: ch, type: 'none' };
-  }
-
-  // 清音に濁点/半濁点を復元
-  function restoreDakuten(ch, type) {
-    if (type === 'dakuten' && DAKUTEN_REVERSE[ch]) return DAKUTEN_REVERSE[ch];
-    if (type === 'handakuten' && HANDAKUTEN_REVERSE[ch]) return HANDAKUTEN_REVERSE[ch];
-    return ch;
   }
 
   // テキスト→ローマ字変換
@@ -181,29 +147,23 @@ const Gojuon = (() => {
 
   // グリッド座標取得（ポリュビオス/タップコード用）
   function charToGrid(ch) {
-    const c = DAKUTEN_MAP[ch] || ch;
-    for (let r = 0; r < GRID.length; r++) {
-      const col = GRID[r].indexOf(c);
-      if (col !== -1) return { row: r, col };
-    }
-    return null;
+    const idx = KANA.indexOf(ch);
+    if (idx === -1) return null;
+    return { row: Math.floor(idx / GRID_COLS), col: idx % GRID_COLS };
   }
 
   function gridToChar(row, col) {
-    if (row >= 0 && row < GRID.length && col >= 0 && col < GRID[row].length) {
-      const ch = GRID[row][col];
-      return ch === 'ー' ? null : ch;
-    }
-    return null;
+    if (row < 0 || row >= GRID.length || col < 0 || col >= GRID_COLS) return null;
+    const idx = row * GRID_COLS + col;
+    return idx < SIZE ? KANA[idx] : null;
   }
 
   return {
-    KANA, SIZE, GRID,
-    DAKUTEN_MAP, KANA_TO_ROMAJI,
+    KANA, SIZE, GRID, GRID_COLS,
+    KANA_TO_ROMAJI,
     toHiragana, toKatakana,
     charToIndex, indexToChar, mod,
     isKana, isKatakana,
-    preserveDakuten, restoreDakuten,
     toRomaji, randomKana,
     charToGrid, gridToChar
   };

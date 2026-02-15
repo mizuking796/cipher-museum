@@ -9,16 +9,15 @@ const CipherEngines = (() => {
   // 共通ヘルパー
   // ============================================================
 
-  /** 文字単位の置換暗号の共通処理（濁音保持） */
+  /** 文字単位の置換暗号の共通処理 */
   function substituteEachChar(text, fn) {
     const h = Gojuon.toHiragana(text);
     let result = '';
     let kanaIdx = 0;
     for (const ch of h) {
       if (Gojuon.isKana(ch) && Gojuon.charToIndex(ch) !== -1) {
-        const { base, type } = Gojuon.preserveDakuten(ch);
-        const transformed = fn(base, kanaIdx);
-        result += Gojuon.restoreDakuten(transformed, type);
+        const transformed = fn(ch, kanaIdx);
+        result += transformed;
         kanaIdx++;
       } else {
         result += ch;
@@ -34,8 +33,7 @@ const CipherEngines = (() => {
     const positions = [];
     const chars = [...h];
     for (let i = 0; i < chars.length; i++) {
-      if (Gojuon.isKana(chars[i]) && (Gojuon.charToIndex(chars[i]) !== -1 ||
-          Gojuon.DAKUTEN_MAP[chars[i]])) {
+      if (Gojuon.isKana(chars[i]) && Gojuon.charToIndex(chars[i]) !== -1) {
         kanaChars.push(chars[i]);
         positions.push(i);
       }
@@ -52,32 +50,35 @@ const CipherEngines = (() => {
   // エニグマ用ローター定義
   // ============================================================
 
-  // 46文字用固定配線テーブル（5種）
-  // 各ローターは0-45のシャッフル順列
+  // 80文字用固定配線テーブル（5種）
+  // 各ローターは0-79のシャッフル順列
   const ENIGMA_ROTORS = [
     // Rotor I
-    [4,10,12,5,11,6,3,16,21,25,13,19,14,22,24,7,27,2,20,9,18,15,17,28,8,26,30,1,23,29,0,34,36,31,42,38,37,39,33,43,44,32,35,40,41,45],
+    [2,3,18,5,61,66,22,34,40,21,35,15,10,78,64,17,72,79,71,4,67,30,77,50,52,65,60,54,1,31,25,36,33,26,20,41,37,74,59,8,23,62,46,55,19,38,58,57,53,42,43,75,49,76,70,24,13,68,39,16,9,28,45,73,11,14,7,69,63,12,29,56,51,0,47,32,44,48,6,27],
     // Rotor II
-    [0,9,3,14,28,18,23,1,5,24,10,15,33,8,31,2,26,41,25,6,35,22,7,30,11,40,27,16,42,29,38,19,43,20,37,34,4,44,36,12,39,45,17,21,32,13],
+    [79,48,17,40,51,26,37,11,3,74,33,15,9,46,27,68,64,23,54,50,14,34,31,73,12,29,13,44,41,43,36,47,78,62,42,65,1,38,67,45,18,53,22,49,76,61,6,63,60,55,66,75,77,10,7,16,57,59,25,70,5,72,2,0,8,4,21,32,19,24,71,56,69,58,20,28,35,52,39,30],
     // Rotor III
-    [1,3,5,7,9,2,0,4,6,8,11,13,15,17,19,10,12,14,16,18,21,23,25,20,22,24,27,29,31,33,35,26,28,30,32,34,37,36,39,38,41,40,43,42,45,44],
+    [73,25,50,7,39,22,13,18,3,11,29,19,65,26,12,59,72,70,15,74,23,27,49,35,1,66,4,62,21,10,53,47,56,37,61,78,77,69,64,58,17,43,68,36,2,71,30,63,46,34,5,79,33,38,45,48,16,60,54,52,20,44,31,0,76,41,51,32,55,28,14,75,42,40,8,24,9,6,67,57],
     // Rotor IV
-    [25,17,36,2,38,13,40,8,30,20,42,0,44,5,34,10,32,22,28,15,26,7,37,3,39,14,41,9,31,21,43,1,45,6,35,11,33,23,29,16,27,18,24,4,19,12],
+    [25,72,46,7,3,9,22,11,69,2,70,21,60,78,5,24,19,23,34,27,42,26,4,8,31,76,65,68,41,10,13,39,56,18,38,51,17,47,52,54,74,53,43,62,35,57,1,49,6,55,45,59,37,20,63,32,50,40,66,67,15,79,61,73,0,44,33,71,12,48,77,75,30,64,29,16,58,14,36,28],
     // Rotor V
-    [21,25,2,17,10,36,30,8,42,5,13,0,44,15,34,20,22,38,28,7,40,3,26,14,39,9,41,1,37,11,43,6,32,16,45,23,29,18,35,4,27,12,33,19,24,31]
+    [18,50,13,33,1,7,3,27,45,17,62,14,46,19,15,30,79,23,60,67,21,35,11,55,22,58,10,47,75,66,31,77,73,53,25,56,6,42,70,51,74,32,61,65,2,20,41,71,59,68,72,63,37,26,9,48,12,34,43,8,54,40,38,76,64,28,49,69,36,4,5,16,29,44,39,24,78,52,0,57]
   ];
 
   // ローターノッチ位置（この位置を超えると次のローターが回転）
-  const ENIGMA_NOTCHES = [21, 4, 25, 17, 12];
+  const ENIGMA_NOTCHES = [39, 8, 47, 33, 23];
 
-  // リフレクター: 23ペア（46文字÷2）
+  // リフレクター: 40ペア（80文字÷2）
   const ENIGMA_REFLECTOR = (() => {
     const pairs = [
-      [0,24],[1,17],[2,20],[3,22],[4,9],[5,14],[6,16],[7,25],
-      [8,23],[10,19],[11,18],[12,15],[13,21],[26,45],[27,44],
-      [28,43],[29,42],[30,41],[31,40],[32,39],[33,38],[34,37],[35,36]
+      [0,24],[1,5],[2,64],[3,46],[4,39],[6,79],[7,10],[8,65],
+      [9,59],[11,63],[12,43],[13,45],[14,27],[15,34],[16,58],
+      [17,33],[18,19],[20,78],[21,31],[22,50],[23,30],[25,48],
+      [26,70],[28,76],[29,61],[32,40],[35,55],[36,68],[37,38],
+      [41,74],[42,72],[44,62],[47,66],[49,73],[51,77],[52,57],
+      [53,67],[54,56],[60,69],[71,75]
     ];
-    const ref = new Array(46);
+    const ref = new Array(80);
     for (const [a, b] of pairs) {
       ref[a] = b;
       ref[b] = a;
@@ -98,21 +99,36 @@ const CipherEngines = (() => {
   // 忍びいろは 記号マッピング
   // ============================================================
 
-  // いろは歌の順番
+  // いろは歌の順番 + 拡張（80文字）
   const IROHA_ORDER = [
+    // 古典いろは順（ゐ・ゑ除外、45文字）
     'い','ろ','は','に','ほ','へ','と','ち','り','ぬ',
     'る','を','わ','か','よ','た','れ','そ','つ','ね',
-    'な','ら','む','う','ゐ','の','お','く','や','ま',
+    'な','ら','む','う','の','お','く','や','ま',
     'け','ふ','こ','え','て','あ','さ','き','ゆ','め',
-    'み','し','ゑ','ひ','も','せ','す'
+    'み','し','ひ','も','せ','す',
+    // ん
+    'ん',
+    // 濁音（五十音順）
+    'が','ぎ','ぐ','げ','ご','ざ','じ','ず','ぜ','ぞ',
+    'だ','ぢ','づ','で','ど','ば','び','ぶ','べ','ぼ',
+    // 半濁音
+    'ぱ','ぴ','ぷ','ぺ','ぽ',
+    // 小書き
+    'ぁ','ぃ','ぅ','ぇ','ぉ','っ','ゃ','ゅ','ょ'
   ];
 
   const IROHA_SYMBOLS = [
     '☆','△','□','◇','○','◎','★','▽','◆','●',
     '▲','■','♦','♠','♣','♥','⊕','⊗','⊙','⊘',
-    '⊞','⊟','⊠','⊡','⊢','⊣','⊤','⊥','⊦','⊧',
-    '⊨','⊩','⊪','⊫','⊬','⊭','⊮','⊯','⊰','⊱',
-    '⊲','⊳','⊴','⊵','⊶','⊷','⊸'
+    '⊞','⊟','⊠','⊡','⊢','⊣','⊤','⊥','⊦',
+    '⊧','⊨','⊩','⊪','⊫','⊬','⊭','⊮','⊯','⊰',
+    '⊱','⊲','⊳','⊴','⊵','⊶',
+    '⊷',
+    '⊸','⊹','⊺','⊻','⊼','⊽','⊾','⊿','⋀','⋁',
+    '⋂','⋃','⋄','⋅','⋆','⋇','⋈','⋉','⋊','⋋',
+    '⋌','⋍','⋎','⋏','⋐',
+    '⋑','⋒','⋓','⋔','⋕','⋖','⋗','⋘','⋙'
   ];
 
   // ひらがな→記号 / 記号→ひらがな のルックアップ
@@ -127,28 +143,33 @@ const CipherEngines = (() => {
   // 豚小屋暗号のグリッド定義
   // ============================================================
 
-  // 46文字を4つの格子に分配
-  // grid 0: ♯格子（ドットなし）9文字
-  // grid 1: ♯格子（ドットあり）9文字
-  // grid 2: ×格子（ドットなし）9文字
-  // grid 3: ×格子（ドットあり）9文字
-  // 残り10文字は grid 4 として扱う（ドット有無で5+5）
-  // → 合計 9+9+9+9+5+5 = 46
+  // 80文字を5つの格子に分配
+  // grid 0: ♯格子 9pos × 2(dot有無) = 18文字
+  // grid 1: ♯格子 9pos × 2(dot有無) = 18文字
+  // grid 2: ♯格子 9pos × 2(dot有無) = 18文字
+  // grid 3: ♯格子 9pos × 2(dot有無) = 18文字
+  // grid 4: ×格子 4pos × 2(dot有無) = 8文字
+  // 合計 18×4 + 8 = 80
   const PIGPEN_MAP = {};
   for (let i = 0; i < Gojuon.SIZE; i++) {
     const ch = Gojuon.KANA[i];
-    if (i < 9) {
-      PIGPEN_MAP[ch] = { grid: 0, pos: i, dot: false };
-    } else if (i < 18) {
-      PIGPEN_MAP[ch] = { grid: 0, pos: i - 9, dot: true };
-    } else if (i < 27) {
-      PIGPEN_MAP[ch] = { grid: 1, pos: i - 18, dot: false };
-    } else if (i < 36) {
-      PIGPEN_MAP[ch] = { grid: 1, pos: i - 27, dot: true };
-    } else if (i < 41) {
-      PIGPEN_MAP[ch] = { grid: 2, pos: i - 36, dot: false };
+    if (i < 72) {
+      // #型格子（grid 0-3）
+      const gridNum = Math.floor(i / 18);
+      const inGrid = i % 18;
+      if (inGrid < 9) {
+        PIGPEN_MAP[ch] = { grid: gridNum, pos: inGrid, dot: false };
+      } else {
+        PIGPEN_MAP[ch] = { grid: gridNum, pos: inGrid - 9, dot: true };
+      }
     } else {
-      PIGPEN_MAP[ch] = { grid: 2, pos: i - 41, dot: true };
+      // ×型格子（grid 4）
+      const inX = i - 72;
+      if (inX < 4) {
+        PIGPEN_MAP[ch] = { grid: 4, pos: inX, dot: false };
+      } else {
+        PIGPEN_MAP[ch] = { grid: 4, pos: inX - 4, dot: true };
+      }
     }
   }
 
@@ -177,22 +198,22 @@ const CipherEngines = (() => {
       icon: '\u{1F3DB}\uFE0F',
       description: '五十音表を一定数シフトして文字を入れ替える最古の暗号',
       keyConfig: [
-        { id: 'shift', label: 'シフト数', type: 'number', min: 1, max: 45, default: 3 }
+        { id: 'shift', label: 'シフト数', type: 'number', min: 1, max: 79, default: 3 }
       ],
       animationType: 'slot',
 
       encrypt(text, keys) {
         const shift = keys.shift || 3;
-        return substituteEachChar(text, (base) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch) => {
+          const idx = Gojuon.charToIndex(ch);
           return Gojuon.indexToChar(idx + shift);
         });
       },
 
       decrypt(text, keys) {
         const shift = keys.shift || 3;
-        return substituteEachChar(text, (base) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch) => {
+          const idx = Gojuon.charToIndex(ch);
           return Gojuon.indexToChar(idx - shift);
         });
       }
@@ -214,8 +235,8 @@ const CipherEngines = (() => {
       animationType: 'slot',
 
       encrypt(text) {
-        return substituteEachChar(text, (base) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch) => {
+          const idx = Gojuon.charToIndex(ch);
           return Gojuon.indexToChar(Gojuon.SIZE - 1 - idx);
         });
       },
@@ -252,8 +273,8 @@ const CipherEngines = (() => {
         }
         if (kwIndices.length === 0) kwIndices.push(0);
 
-        return substituteEachChar(text, (base, kanaIdx) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch, kanaIdx) => {
+          const idx = Gojuon.charToIndex(ch);
           const shift = kwIndices[kanaIdx % kwIndices.length];
           return Gojuon.indexToChar(idx + shift);
         });
@@ -268,8 +289,8 @@ const CipherEngines = (() => {
         }
         if (kwIndices.length === 0) kwIndices.push(0);
 
-        return substituteEachChar(text, (base, kanaIdx) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch, kanaIdx) => {
+          const idx = Gojuon.charToIndex(ch);
           const shift = kwIndices[kanaIdx % kwIndices.length];
           return Gojuon.indexToChar(idx - shift);
         });
@@ -293,57 +314,46 @@ const CipherEngines = (() => {
 
       encrypt(text) {
         const h = Gojuon.toHiragana(text);
-        let result = '';
+        const parts = [];
         for (const ch of h) {
           if (Gojuon.isKana(ch)) {
-            const { base, type } = Gojuon.preserveDakuten(ch);
-            const grid = Gojuon.charToGrid(base);
+            const grid = Gojuon.charToGrid(ch);
             if (grid) {
-              // 行列座標を2桁の数字に（1始まり）
-              result += (grid.row + 1) + '' + (grid.col + 1);
+              // 行列座標を数字に（1始まり）。スペース区切りで曖昧性を排除
+              parts.push((grid.row + 1) + '' + (grid.col + 1));
             } else {
-              result += ch;
+              parts.push(ch);
             }
           } else {
-            result += ch;
+            parts.push(ch);
           }
         }
-        return result;
+        return parts.join(' ');
       },
 
       decrypt(text) {
+        const tokens = text.trim().split(/\s+/);
         let result = '';
-        let i = 0;
-        while (i < text.length) {
-          // 連続する2桁の数字を座標として解釈
-          if (i + 1 < text.length &&
-              text[i] >= '1' && text[i] <= '9' &&
-              text[i + 1] >= '1' && text[i + 1] <= '5') {
-            const row = parseInt(text[i]) - 1;
-            const col = parseInt(text[i + 1]) - 1;
-            // 行は0-9（10行: 最大2桁で10を表現するため特別処理）
-            if (row < 10) {
+        for (const token of tokens) {
+          if (/^\d{2,3}$/.test(token)) {
+            let row, col;
+            if (token.length === 2) {
+              row = parseInt(token[0]) - 1;
+              col = parseInt(token[1]) - 1;
+            } else {
+              // 3桁: 2桁の行番号 + 1桁の列番号
+              row = parseInt(token.substring(0, 2)) - 1;
+              col = parseInt(token[2]) - 1;
+            }
+            if (row >= 0 && row < Gojuon.GRID.length && col >= 0 && col < Gojuon.GRID_COLS) {
               const ch = Gojuon.gridToChar(row, col);
               if (ch) {
                 result += ch;
-                i += 2;
                 continue;
               }
             }
           }
-          // 10行目の処理: "10" で始まる場合
-          if (i + 2 < text.length && text[i] === '1' && text[i + 1] === '0' &&
-              text[i + 2] >= '1' && text[i + 2] <= '5') {
-            const col = parseInt(text[i + 2]) - 1;
-            const ch = Gojuon.gridToChar(9, col);
-            if (ch) {
-              result += ch;
-              i += 3;
-              continue;
-            }
-          }
-          result += text[i];
-          i++;
+          result += token;
         }
         return result;
       }
@@ -370,10 +380,9 @@ const CipherEngines = (() => {
         const result = [];
         for (const ch of h) {
           if (Gojuon.isKana(ch)) {
-            const { base, type } = Gojuon.preserveDakuten(ch);
-            const info = PIGPEN_MAP[base];
+            const info = PIGPEN_MAP[ch];
             if (info) {
-              result.push({ ...info, dakuten: type, original: ch });
+              result.push({ ...info, original: ch });
             } else {
               result.push({ type: 'passthrough', char: ch });
             }
@@ -385,7 +394,7 @@ const CipherEngines = (() => {
       },
 
       decrypt(data) {
-        // data は [{grid, pos, dot, dakuten}] の配列、またはテキスト
+        // data は [{grid, pos, dot}] の配列、またはテキスト
         if (typeof data === 'string') return data;
         let result = '';
         for (const item of data) {
@@ -393,11 +402,7 @@ const CipherEngines = (() => {
             result += item.char;
           } else {
             const key = `${item.grid}-${item.pos}-${item.dot}`;
-            let ch = PIGPEN_REVERSE[key] || '?';
-            if (item.dakuten && item.dakuten !== 'none') {
-              ch = Gojuon.restoreDakuten(ch, item.dakuten);
-            }
-            result += ch;
+            result += PIGPEN_REVERSE[key] || '?';
           }
         }
         return result;
@@ -587,17 +592,9 @@ const CipherEngines = (() => {
         const h = Gojuon.toHiragana(text);
         let result = '';
         for (const ch of h) {
-          if (Gojuon.isKana(ch)) {
-            const { base, type } = Gojuon.preserveDakuten(ch);
-            const sym = SHINOBI_ENCRYPT[base];
-            if (sym) {
-              // 濁音の場合は記号の後に濁点マーカーを付加
-              result += sym;
-              if (type === 'dakuten') result += '\u3099';
-              else if (type === 'handakuten') result += '\u309A';
-            } else {
-              result += ch;
-            }
+          const sym = SHINOBI_ENCRYPT[ch];
+          if (sym) {
+            result += sym;
           } else {
             result += ch;
           }
@@ -611,19 +608,10 @@ const CipherEngines = (() => {
         for (let i = 0; i < chars.length; i++) {
           const ch = chars[i];
           if (SHINOBI_DECRYPT[ch]) {
-            let base = SHINOBI_DECRYPT[ch];
-            // 次の文字が濁点/半濁点結合文字か確認
-            if (i + 1 < chars.length) {
-              if (chars[i + 1] === '\u3099') {
-                base = Gojuon.restoreDakuten(base, 'dakuten');
-                i++;
-              } else if (chars[i + 1] === '\u309A') {
-                base = Gojuon.restoreDakuten(base, 'handakuten');
-                i++;
-              }
-            }
-            result += base;
+            result += SHINOBI_DECRYPT[ch];
           } else {
+            // 旧形式の濁点結合文字をスキップ
+            if (ch === '\u3099' || ch === '\u309A') continue;
             result += ch;
           }
         }
@@ -674,8 +662,6 @@ const CipherEngines = (() => {
 
         for (const ch of h) {
           if (Gojuon.isKana(ch) && Gojuon.charToIndex(ch) !== -1) {
-            const { base, type } = Gojuon.preserveDakuten(ch);
-
             // ローター回転（入力前に回転）
             // 右ローター（index 2）は毎回回転
             const midRotate = positions[2] === notches[2];
@@ -684,7 +670,7 @@ const CipherEngines = (() => {
             if (midRotate) positions[1] = (positions[1] + 1) % Gojuon.SIZE;
             if (leftRotate) positions[0] = (positions[0] + 1) % Gojuon.SIZE;
 
-            let signal = Gojuon.charToIndex(base);
+            let signal = Gojuon.charToIndex(ch);
 
             // 右→中→左 順方向
             for (let r = 2; r >= 0; r--) {
@@ -703,8 +689,7 @@ const CipherEngines = (() => {
               signal = Gojuon.mod(signal - positions[r], Gojuon.SIZE);
             }
 
-            const encrypted = Gojuon.indexToChar(signal);
-            result += Gojuon.restoreDakuten(encrypted, type);
+            result += Gojuon.indexToChar(signal);
           } else {
             result += ch;
           }
@@ -756,8 +741,8 @@ const CipherEngines = (() => {
         // 生成した鍵を keys に書き戻す（UIが表示できるように）
         keys._generatedKey = keyChars.map(c => c).join('');
 
-        return substituteEachChar(text, (base, kanaIdx) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch, kanaIdx) => {
+          const idx = Gojuon.charToIndex(ch);
           const keyIdx = Gojuon.charToIndex(keyChars[kanaIdx]);
           return Gojuon.indexToChar(idx + keyIdx);
         });
@@ -767,8 +752,8 @@ const CipherEngines = (() => {
         const keyStr = Gojuon.toHiragana(keys.key || keys._generatedKey || '');
         const keyChars = [...keyStr].filter(c => Gojuon.charToIndex(c) !== -1);
 
-        return substituteEachChar(text, (base, kanaIdx) => {
-          const idx = Gojuon.charToIndex(base);
+        return substituteEachChar(text, (ch, kanaIdx) => {
+          const idx = Gojuon.charToIndex(ch);
           const keyIdx = kanaIdx < keyChars.length ? Gojuon.charToIndex(keyChars[kanaIdx]) : 0;
           return Gojuon.indexToChar(idx - keyIdx);
         });
@@ -795,8 +780,7 @@ const CipherEngines = (() => {
         const parts = [];
         for (const ch of h) {
           if (Gojuon.isKana(ch)) {
-            const { base } = Gojuon.preserveDakuten(ch);
-            const grid = Gojuon.charToGrid(base);
+            const grid = Gojuon.charToGrid(ch);
             if (grid) {
               // 行+1回タップ、間隔、列+1回タップ
               const rowTaps = '\u30FB'.repeat(grid.row + 1);
