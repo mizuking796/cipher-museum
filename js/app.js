@@ -329,13 +329,38 @@ const App = (() => {
   function copyOutput() {
     const outputEl = document.getElementById('outputArea');
     const text = outputEl.textContent || outputEl.innerText;
-    navigator.clipboard.writeText(text).then(() => {
+    if (!text.trim()) return;
+
+    const showFeedback = (msg) => {
       const fb = document.getElementById('copyFeedback');
       if (fb) {
+        fb.textContent = msg || 'コピーしました';
         fb.classList.add('show');
-        setTimeout(() => fb.classList.remove('show'), 1500);
+        setTimeout(() => { fb.classList.remove('show'); fb.textContent = 'コピーしました'; }, 1500);
       }
-    });
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showFeedback()).catch(() => fallbackCopy(text, showFeedback));
+    } else {
+      fallbackCopy(text, showFeedback);
+    }
+  }
+
+  function fallbackCopy(text, callback) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      callback('コピーしました');
+    } catch (e) {
+      callback('コピーに失敗しました');
+    }
+    document.body.removeChild(ta);
   }
 
   // ---- 出力→入力転送 ----
