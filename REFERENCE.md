@@ -15,7 +15,7 @@
 - IIFE パターンでモジュール分離
 - CSP（Content Security Policy）設定済み
 
-## ファイル構成（10ファイル / 3,643行）
+## ファイル構成（10ファイル / 3,829行）
 
 ```
 cipher-museum/
@@ -23,12 +23,12 @@ cipher-museum/
 ├── css/
 │   └── style.css       (665行)  — ダーク博物館テーマ
 ├── js/
-│   ├── gojuon.js       (170行)  — 五十音80文字ユーティリティ（全エンジンの共通基盤）
+│   ├── gojuon.js       (244行)  — 五十音80文字ユーティリティ（全エンジンの共通基盤）
 │   ├── ciphers.js      (913行)  — 暗号エンジン12種
-│   ├── scripts.js      (550行)  — 文字変換エンジン8種
+│   ├── scripts.js      (661行)  — 文字変換エンジン8種（逆変換対応）
 │   ├── episodes.js     (465行)  — 教育コンテンツ20方式分
 │   ├── animation.js    (316行)  — カシャカシャ変換アニメーション4種
-│   └── app.js          (497行)  — メインコントローラー
+│   └── app.js          (498行)  — メインコントローラー
 ├── favicon.svg                  — SVGファビコン
 ├── favicon.png                  — PNGファビコン（192x192）
 └── REFERENCE.md
@@ -94,13 +94,13 @@ gojuon.js → ciphers.js → scripts.js → episodes.js → animation.js → app
 
 | ID | 名称 | カテゴリ | 変換方式 | 出力形式 | 逆変換 |
 |---|---|---|---|---|---|
-| `hieroglyph` | ヒエログリフ | ancient | ローマ字→Unicode Egyptian | text | - |
-| `rune` | ルーン文字 | ancient | ローマ字→Elder Futhark | text | - |
-| `linearb` | 線文字B | ancient | ローマ字→音節文字 | text | - |
+| `hieroglyph` | ヒエログリフ | ancient | ローマ字→Unicode Egyptian | text | OK |
+| `rune` | ルーン文字 | ancient | ローマ字→Elder Futhark | text | OK（c/k,j/y補正付） |
+| `linearb` | 線文字B | ancient | ローマ字→音節文字 | text | OK（da/za,ta/wa衝突あり） |
 | `braille` | 点字 | symbol | かな→六点点字 | text | OK |
-| `aurebesh` | オーレベシュ | fictional | ローマ字→フォント表示 | font | - |
-| `sga` | 銀河標準文字 | fictional | ローマ字→フォント表示 | font | - |
-| `mathsymbols` | 数学用記号文字 | decoration | ローマ字→13書体変種 | text | - |
+| `aurebesh` | オーレベシュ | fictional | ローマ字→フォント表示 | font | OK |
+| `sga` | 銀河標準文字 | fictional | ローマ字→フォント表示 | font | OK |
+| `mathsymbols` | 数学用記号文字 | decoration | ローマ字→13書体変種 | text | OK（全13書体対応） |
 | `upsidedown` | 逆さ文字 | decoration | ローマ字→IPA文字+逆順 | text | OK |
 
 ### カテゴリ定義（9種）
@@ -131,6 +131,7 @@ fictional(架空文字), symbol(符号・記号), decoration(装飾変換)
 | `charToIndex(ch)` | 文字→インデックス（KANA.indexOf直引き） |
 | `indexToChar(idx)` | インデックス→文字（mod 80で循環） |
 | `toRomaji(text)` | テキスト→ローマ字変換（拗音・促音対応） |
+| `fromRomaji(text)` | ローマ字→ひらがな変換（最長一致・促音・撥音対応） |
 | `charToGrid(ch)` / `gridToChar(r,c)` | 五十音表の座標変換 |
 | `isKana(ch)` / `isKatakana(ch)` | 文字種判定 |
 | `randomKana()` | ランダムひらがな（アニメーション用） |
@@ -180,6 +181,25 @@ transposeKana(text, fn)
 - 出力: 4桁大文字16進数（スペース区切り）
 - 復号: 16進トークンをパース → XOR → String.fromCharCode
 
+## 逆変換（外国文字→日本語）
+
+### 変換フロー
+```
+順変換: 日本語テキスト → toRomaji() → 文字マップ → 外国文字
+逆変換: 外国文字 → 逆引きマップ → ローマ字 → fromRomaji() → ひらがな
+```
+
+### fromRomaji() アルゴリズム
+1. 促音: 同一子音連続（`kk`, `tt` 等、`nn`除く）→ っ
+2. 撥音: `n` + 子音/末尾 → ん（`nn` もここでカバー: 最初のnがん、次のnは次の音節の頭）
+3. 最長一致: `ROMAJI_KEYS`（長い順ソート）で照合（`sha`→しゃ が `s`+`ha` より優先）
+
+### 逆引きマップの衝突解決
+- `buildReverseMap()`: 最初の登録を優先（`{a:'X', b:'X'}` → `{'X':'a'}`）
+- ルーン: 衝突ルーンに対しローマ字として適切な文字を手動指定（k/f/y優先）+ 後処理補正
+- ヒエログリフ: 衝突していたe/u/w, f/vを固有グリフに変更して根本解決
+- 数学記号: Unicode offset逆算（コードポイント範囲判定→ASCII復元）
+
 ## 教育コンテンツ構造（episodes.js）
 
 各方式に以下のセクションを収録:
@@ -206,6 +226,12 @@ transposeKana(text, fn)
 - ぁぃぅぇぉっゃゅょは点字マッピング未対応（パスルー）
 - 実際の日本語点字では専用マーカーがあるが未実装
 
+### 逆変換（外国文字→日本語）の制限
+- **ローマ字の曖昧性**: ん+母音始まりの音（例: きんえん）はローマ字では区別不能（kinen = きねん or きんえん）
+- **ルーン文字**: c/k/q が同一ルーン。`kh→ch`, `yi→ji` の補正あり。`j/y` の曖昧性は残る（じゃ/や）
+- **線文字B**: da/za, ta/wa, de/ze, du/zu, te/we, ti/wi, to/wo が同一音節文字（Linear B の音節体系の制限）
+- **オーレベシュ/SGA**: Webフォント未搭載のためローマ字テキストを逆変換（表示上のグリフは逆変換不可）
+
 ## CSSテーマ変数
 ```css
 --bg-primary:   #0d1117  /* 最暗背景 */
@@ -221,6 +247,16 @@ transposeKana(text, fn)
 ```
 
 ## バージョン履歴
+
+### v1.2 (2026-02-15)
+- 全8文字変換エンジンに逆変換（外国文字→日本語）を追加
+- gojuon.js: `fromRomaji()` 追加（ローマ字→ひらがな、最長一致/促音/撥音対応）
+- scripts.js: 逆引きマップ + `reverse()` メソッド + `reversible: true` を全エンジンに設定
+- ヒエログリフ: e/u/w グリフ衝突を解消（固有コードポイント割当）
+- ルーン: `kh→ch`, `yi→ji` の後処理補正
+- 数学記号: Unicode offset 逆算で全13書体の逆変換対応
+- 逆さ文字: `reverse()` を `fromRomaji()` 経由に修正（ひらがな出力）
+- `fromRomaji`: `nn` 特殊ルール削除（`n`+子音→ん 規則でカバー）
 
 ### v1.1 (2026-02-15)
 - KANA配列を46→80文字に拡張（濁音20+半濁音5+小書き9を直接サポート）
