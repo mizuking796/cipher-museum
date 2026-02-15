@@ -167,7 +167,7 @@ const App = (() => {
 
       <div class="input-section">
         <div class="input-label">入力テキスト</div>
-        <textarea class="input-textarea" id="inputText" placeholder="ひらがな・カタカナで入力...">${getDefaultText()}</textarea>
+        <textarea class="input-textarea" id="inputText" placeholder="${isScript ? 'テキストを入力...' : '暗号化: かなで入力 / 復号: 暗号文を貼り付け'}">${getDefaultText()}</textarea>
       </div>
 
       ${keyConfigHtml}
@@ -184,7 +184,7 @@ const App = (() => {
         <div class="output-area" id="outputArea"></div>
         <div class="output-toolbar">
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
-          ${!isScript && engine.decrypt ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
+          ${!isScript && engine.decrypt && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
       </div>`;
@@ -347,6 +347,10 @@ const App = (() => {
     if (!text.trim()) return;
     inputEl.value = text;
     inputEl.focus();
+    // 入力欄ハイライト
+    inputEl.style.borderColor = 'var(--green)';
+    inputEl.style.boxShadow = '0 0 0 3px rgba(63, 185, 80, 0.2)';
+    setTimeout(() => { inputEl.style.borderColor = ''; inputEl.style.boxShadow = ''; }, 1200);
     // フィードバック
     const fb = document.getElementById('copyFeedback');
     if (fb) {
