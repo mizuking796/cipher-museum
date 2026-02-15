@@ -171,6 +171,7 @@ const App = (() => {
         <div class="output-area" id="outputArea"></div>
         <div class="output-toolbar">
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
+          ${!isScript && engine.decrypt ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
       </div>`;
@@ -324,6 +325,27 @@ const App = (() => {
     });
   }
 
+  // ---- 出力→入力転送 ----
+  function sendOutputToInput() {
+    const outputEl = document.getElementById('outputArea');
+    const inputEl = document.getElementById('inputText');
+    if (!outputEl || !inputEl) return;
+    const text = outputEl.textContent || outputEl.innerText;
+    if (!text.trim()) return;
+    inputEl.value = text;
+    inputEl.focus();
+    // フィードバック
+    const fb = document.getElementById('copyFeedback');
+    if (fb) {
+      fb.textContent = '入力に送りました';
+      fb.classList.add('show');
+      setTimeout(() => {
+        fb.classList.remove('show');
+        fb.textContent = 'コピーしました';
+      }, 1500);
+    }
+  }
+
   // ---- イベントバインド ----
   function bindEvents() {
     // サイドバー・ウェルカムカードのクリック
@@ -342,8 +364,12 @@ const App = (() => {
       if (e.target.closest('#btnDecrypt')) {
         executeConvert('decrypt');
       }
+      // 入力に送るボタン
+      if (e.target.closest('#btnToInput')) {
+        sendOutputToInput();
+      }
       // コピーボタン
-      if (e.target.closest('#btnCopy')) {
+      if (e.target.closest('#btnCopy') && !e.target.closest('#btnToInput')) {
         copyOutput();
       }
       // モバイルサイドバートグル
