@@ -1,0 +1,644 @@
+/* ============================================================
+   Cipher Museum — ダークテーマ博物館風UI
+   ============================================================ */
+
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-card: #1c2128;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #c9a84c;
+  --accent-dim: #a68a3a;
+  --accent-glow: rgba(201, 168, 76, 0.15);
+  --green: #3fb950;
+  --blue: #58a6ff;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- ヘッダー ---- */
+.header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
+
+.header-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.header-spacer { flex: 1; }
+
+.header-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.header-btn:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+/* ---- メインレイアウト ---- */
+.main-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  min-height: calc(100vh - 49px);
+}
+
+/* ---- サイドバー（方式カタログ） ---- */
+.sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.sidebar-category {
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+
+.sidebar-category-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sidebar-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-item-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-item-difficulty {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ---- 中央: 変換エリア ---- */
+.converter {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.converter-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.converter-icon {
+  font-size: 32px;
+}
+
+.converter-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.converter-era {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.converter-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 入力エリア */
+.input-section, .output-section {
+  position: relative;
+}
+
+.input-label, .output-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.input-textarea {
+  width: 100%;
+  min-height: 100px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+  line-height: 1.8;
+}
+
+.input-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.input-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* 鍵設定 */
+.key-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.key-config:empty { display: none; }
+
+.key-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.key-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.key-field input, .key-field select {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  min-width: 100px;
+}
+
+.key-field input:focus, .key-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* 変換ボタン */
+.action-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-convert {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  border: none;
+  color: var(--bg-primary);
+  padding: 10px 28px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.btn-convert:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
+}
+
+.btn-convert:active {
+  transform: translateY(0);
+}
+
+.btn-convert:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-swap {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-swap:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+/* 出力エリア */
+.output-area {
+  width: 100%;
+  min-height: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 18px;
+  line-height: 2;
+  word-break: break-all;
+  position: relative;
+}
+
+.output-area .cipher-char {
+  display: inline-block;
+  transition: all 0.15s ease;
+}
+
+.output-area .cipher-char.cycling {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.output-area .cipher-char.settled {
+  color: var(--accent);
+  animation: charSettle 0.2s ease;
+}
+
+@keyframes charSettle {
+  0% { transform: scale(1.3); color: #fff; }
+  100% { transform: scale(1); color: var(--accent); }
+}
+
+.output-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-copy, .btn-share {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.btn-copy:hover, .btn-share:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.copy-feedback {
+  font-size: 12px;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.copy-feedback.show { opacity: 1; }
+
+/* 豚小屋暗号SVG */
+.pigpen-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pigpen-glyph {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* フォントベース出力（オーレベシュ、SGA） */
+.output-area.aurebesh-font {
+  font-family: 'Aurebesh', monospace;
+  letter-spacing: 2px;
+}
+
+.output-area.sga-font {
+  font-family: 'SGA', monospace;
+  letter-spacing: 2px;
+}
+
+/* ---- 右パネル: 解説 ---- */
+.info-panel {
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.info-section {
+  margin-bottom: 20px;
+}
+
+.info-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-section-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.info-section-content p {
+  margin-bottom: 8px;
+}
+
+.info-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.info-related-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.info-related-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- ウェルカム画面 ---- */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  min-height: 400px;
+}
+
+.welcome-icon { font-size: 64px; margin-bottom: 16px; }
+.welcome-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.welcome-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 400px;
+  margin-bottom: 24px;
+}
+
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.welcome-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.welcome-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.welcome-card-icon { font-size: 24px; margin-bottom: 4px; }
+.welcome-card-name { font-size: 11px; color: var(--text-secondary); }
+
+/* ---- モバイル対応 ---- */
+.mobile-tabs {
+  display: none;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.mobile-tabs button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mobile-tabs button.active {
+  color: var(--accent);
+}
+
+.sidebar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+@media (max-width: 900px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -280px;
+    top: 49px;
+    bottom: 0;
+    width: 270px;
+    z-index: 90;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 80;
+  }
+
+  .sidebar-overlay.show { display: block; }
+
+  .info-panel {
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .info-panel.hidden { display: none; }
+
+  .mobile-tabs {
+    display: flex;
+  }
+
+  .sidebar-toggle {
+    display: block;
+  }
+
+  .converter {
+    padding: 16px;
+    padding-bottom: 60px;
+  }
+
+  body { padding-bottom: 50px; }
+}
+
+@media (max-width: 600px) {
+  .converter-title { font-size: 18px; }
+  .input-textarea { font-size: 14px; min-height: 80px; }
+  .output-area { font-size: 16px; }
+  .header-subtitle { display: none; }
+}
+
+/* ---- スクロールバー ---- */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ---- 選択色 ---- */
+::selection {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+/* ---- ユーティリティ ---- */
+.hidden { display: none !important; }
+.flex-center { display: flex; align-items: center; justify-content: center; }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cipher Museum — 暗号博物館</title>
+  <meta name="description" content="古今東西の暗号と古代文字を体験する博物館。日本語テキストを20種以上の暗号・文字に変換。">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="header">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <span class="header-logo">🏛️</span>
+    <span class="header-title">Cipher Museum</span>
+    <span class="header-subtitle">暗号博物館</span>
+    <div class="header-spacer"></div>
+  </header>
+
+  <!-- メインレイアウト -->
+  <div class="main-layout">
+
+    <!-- サイドバー: 方式カタログ -->
+    <nav class="sidebar" id="sidebar"></nav>
+
+    <!-- 中央: 変換エリア -->
+    <main class="converter" id="converter"></main>
+
+    <!-- 右: 解説パネル -->
+    <aside class="info-panel" id="infoPanel">
+      <div class="info-section">
+        <div class="info-section-title">📖 Cipher Museum</div>
+        <div class="info-section-content">
+          <p>古今東西の暗号と古代文字を体験する博物館です。</p>
+          <p>左のメニューから方式を選んで、テキストを変換してみましょう。</p>
+          <p>各方式の歴史や仕組みもこのパネルに表示されます。</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- モバイル: サイドバーオーバーレイ -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- モバイル: ボトムタブ -->
+  <div class="mobile-tabs">
+    <button class="mobile-tab" data-tab="list">📋 一覧</button>
+    <button class="mobile-tab active" data-tab="convert">🔐 変換</button>
+    <button class="mobile-tab" data-tab="info">📖 解説</button>
+  </div>
+
+  <!-- JS読み込み（順序重要） -->
+  <script src="js/gojuon.js"></script>
+  <script src="js/ciphers.js"></script>
+  <script src="js/scripts.js"></script>
+  <script src="js/episodes.js"></script>
+  <script src="js/animation.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
