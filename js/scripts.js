@@ -33,10 +33,31 @@ const ScriptEngines = (() => {
     f: '\u{13191}', g: '\u{133BC}', h: '\u{13254}', i: '\u{131CB}',
     j: '\u{13193}', k: '\u{133A1}', l: '\u{130ED}', m: '\u{13153}',
     n: '\u{13216}', o: '\u{1336F}', p: '\u{132AA}', q: '\u{1320E}',
-    r: '\u{1308B}', s: '\u{132F4}', t: '\u{1340F}', u: '\u{13171}',
-    v: '\u{13191}', w: '\u{13171}', x: '\u{1339D}', y: '\u{131CC}',
+    r: '\u{1308B}', s: '\u{132F4}', t: '\u{1340F}', u: '\u{130B8}',
+    v: '\u{13060}', w: '\u{1301C}', x: '\u{1339D}', y: '\u{131CC}',
     z: '\u{13283}'
   };
+
+  // 逆引きマップ生成ヘルパー（衝突時は最初の登録を優先）
+  function buildReverseMap(map) {
+    const rev = {};
+    for (const [key, val] of Object.entries(map)) {
+      if (val && !rev[val]) rev[val] = key;
+    }
+    return rev;
+  }
+
+  // 外国文字→ローマ字→ひらがな変換ヘルパー
+  function reverseViaRomaji(text, reverseMap) {
+    const chars = [...text];
+    let romaji = '';
+    for (const ch of chars) {
+      romaji += reverseMap[ch] !== undefined ? reverseMap[ch] : ch;
+    }
+    return Gojuon.fromRomaji(romaji);
+  }
+
+  const HIEROGLYPH_REVERSE = buildReverseMap(HIEROGLYPH_MAP);
 
   const hieroglyph = {
     id: 'hieroglyph',
@@ -52,7 +73,10 @@ const ScriptEngines = (() => {
       const romaji = textToRomaji(text);
       return mapRomaji(romaji, HIEROGLYPH_MAP);
     },
-    reversible: false,
+    reverse(text) {
+      return reverseViaRomaji(text, HIEROGLYPH_REVERSE);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'text'
   };
@@ -69,6 +93,15 @@ const ScriptEngines = (() => {
     y: '\u16C3', z: '\u16C9'
   };
 
+  const RUNE_REVERSE = (() => {
+    const rev = buildReverseMap(RUNE_MAP);
+    // 衝突するルーンはローマ字として適切な文字を優先
+    rev['\u16B2'] = 'k'; // c/k/q → k（ka,ki,ku,ke,ko が標準ローマ字）
+    rev['\u16A0'] = 'f'; // f/v → f（fu が標準ローマ字）
+    rev['\u16C3'] = 'y'; // j/y → y（ya,yu,yo が標準ローマ字）
+    return rev;
+  })();
+
   const rune = {
     id: 'rune',
     name: 'ルーン文字',
@@ -83,7 +116,19 @@ const ScriptEngines = (() => {
       const romaji = textToRomaji(text);
       return mapRomaji(romaji, RUNE_MAP);
     },
-    reversible: false,
+    reverse(text) {
+      // 文字ごとにローマ字逆変換
+      const chars = [...text];
+      let romaji = '';
+      for (const ch of chars) {
+        romaji += RUNE_REVERSE[ch] !== undefined ? RUNE_REVERSE[ch] : ch;
+      }
+      // ルーン衝突の補正: 標準ローマ字に存在しない組合せを修正
+      romaji = romaji.replace(/kh/g, 'ch');  // c/k衝突: 'kh'→'ch'（chi,cha等）
+      romaji = romaji.replace(/yi/g, 'ji');  // j/y衝突: 'yi'→'ji'（ji=じ）
+      return Gojuon.fromRomaji(romaji);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'text'
   };
@@ -128,6 +173,15 @@ const ScriptEngines = (() => {
     'za': '\u{10005}', 'ze': '\u{10006}', 'zu': '\u{10009}'
   };
 
+  // 線文字B逆引き（音節文字→ローマ字、衝突時は最初の登録優先）
+  const LINEAR_B_REVERSE = (() => {
+    const rev = {};
+    for (const [key, val] of Object.entries(LINEAR_B_MAP)) {
+      if (val && !rev[val]) rev[val] = key;
+    }
+    return rev;
+  })();
+
   const linearb = {
     id: 'linearb',
     name: '線文字B',
@@ -164,7 +218,15 @@ const ScriptEngines = (() => {
       }
       return result;
     },
-    reversible: false,
+    reverse(text) {
+      const chars = [...text];
+      let romaji = '';
+      for (const ch of chars) {
+        romaji += LINEAR_B_REVERSE[ch] !== undefined ? LINEAR_B_REVERSE[ch] : ch;
+      }
+      return Gojuon.fromRomaji(romaji);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'text'
   };
@@ -324,7 +386,10 @@ const ScriptEngines = (() => {
       const romaji = textToRomaji(text);
       return mapRomaji(romaji, CIRCLED_MAP);
     },
-    reversible: false,
+    reverse(text) {
+      return Gojuon.fromRomaji(text);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'font',
     fontClass: 'aurebesh-font'
@@ -351,7 +416,10 @@ const ScriptEngines = (() => {
       const romaji = textToRomaji(text);
       return mapRomaji(romaji, CIRCLED_MAP);
     },
-    reversible: false,
+    reverse(text) {
+      return Gojuon.fromRomaji(text);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'font',
     fontClass: 'sga-font'
@@ -468,7 +536,50 @@ const ScriptEngines = (() => {
       }
       return result;
     },
-    reversible: false,
+    reverse(text, config = {}) {
+      const variant = config.variant || 'fraktur';
+      const offsets = MATH_VARIANTS[variant];
+      if (!offsets) return text;
+
+      // 例外文字の逆引きマップ生成
+      const exceptions = MATH_EXCEPTIONS[variant] || {};
+      const excReverse = {};
+      for (const [ascii, uni] of Object.entries(exceptions)) {
+        excReverse[uni] = ascii;
+      }
+
+      const chars = [...text];
+      let romaji = '';
+      for (const ch of chars) {
+        // 例外文字チェック
+        if (excReverse[ch] !== undefined) {
+          romaji += excReverse[ch];
+          continue;
+        }
+
+        const cp = ch.codePointAt(0);
+
+        // 大文字判定
+        if (offsets.upper && cp >= offsets.upper && cp < offsets.upper + 26) {
+          romaji += String.fromCharCode(0x41 + (cp - offsets.upper));
+          continue;
+        }
+        // 小文字判定
+        if (offsets.lower && cp >= offsets.lower && cp < offsets.lower + 26) {
+          romaji += String.fromCharCode(0x61 + (cp - offsets.lower));
+          continue;
+        }
+        // 数字判定
+        if (offsets.digit && cp >= offsets.digit && cp < offsets.digit + 10) {
+          romaji += String.fromCharCode(0x30 + (cp - offsets.digit));
+          continue;
+        }
+
+        romaji += ch;
+      }
+      return Gojuon.fromRomaji(romaji);
+    },
+    reversible: true,
     animationType: 'morph',
     outputType: 'text'
   };
@@ -522,11 +633,11 @@ const ScriptEngines = (() => {
     reverse(text) {
       // まず逆順に戻す
       const reversed = [...text].reverse().join('');
-      let result = '';
+      let romaji = '';
       for (const ch of reversed) {
-        result += UPSIDE_DOWN_REVERSE[ch] !== undefined ? UPSIDE_DOWN_REVERSE[ch] : ch;
+        romaji += UPSIDE_DOWN_REVERSE[ch] !== undefined ? UPSIDE_DOWN_REVERSE[ch] : ch;
       }
-      return result;
+      return Gojuon.fromRomaji(romaji);
     },
     reversible: true,
     animationType: 'morph',

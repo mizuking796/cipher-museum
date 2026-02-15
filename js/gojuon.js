@@ -140,6 +140,80 @@ const Gojuon = (() => {
     return result;
   }
 
+  // ローマ字→ひらがな変換（逆変換用）
+  const ROMAJI_TO_KANA = (() => {
+    const map = {};
+    // 拗音（3文字ローマ字→2文字かな）を先に登録
+    const combos = {
+      'kya':'きゃ','kyu':'きゅ','kyo':'きょ',
+      'sha':'しゃ','shu':'しゅ','sho':'しょ',
+      'cha':'ちゃ','chu':'ちゅ','cho':'ちょ',
+      'nya':'にゃ','nyu':'にゅ','nyo':'にょ',
+      'hya':'ひゃ','hyu':'ひゅ','hyo':'ひょ',
+      'mya':'みゃ','myu':'みゅ','myo':'みょ',
+      'rya':'りゃ','ryu':'りゅ','ryo':'りょ',
+      'gya':'ぎゃ','gyu':'ぎゅ','gyo':'ぎょ',
+      'ja':'じゃ','ju':'じゅ','jo':'じょ',
+      'bya':'びゃ','byu':'びゅ','byo':'びょ',
+      'pya':'ぴゃ','pyu':'ぴゅ','pyo':'ぴょ'
+    };
+    for (const [r, k] of Object.entries(combos)) map[r] = k;
+    // 単独かな（標準形のみ、小書きより優先）
+    for (const [kana, romaji] of Object.entries(KANA_TO_ROMAJI)) {
+      if (romaji === '' || romaji === '-') continue;
+      if (kana.length > 1) continue; // 拗音エントリはスキップ
+      if ('ぁぃぅぇぉゃゅょ'.includes(kana)) continue; // 小書きスキップ
+      if (!map[romaji]) map[romaji] = kana;
+    }
+    return map;
+  })();
+
+  // ローマ字→ひらがな変換のソート済みキー（長い順）
+  const ROMAJI_KEYS = Object.keys(ROMAJI_TO_KANA).sort((a, b) => b.length - a.length);
+
+  function fromRomaji(text) {
+    const lower = text.toLowerCase();
+    let result = '';
+    let i = 0;
+    while (i < lower.length) {
+      // 促音: 同じ子音が連続（nn除く、nnはん）
+      if (i + 1 < lower.length && lower[i] === lower[i + 1] &&
+          /[bcdfghjkmprstwz]/.test(lower[i])) {
+        result += 'っ';
+        i++;
+        continue;
+      }
+      // 'n' + 非母音/非y → ん（nn のケースもここでカバー: 最初のnがん、次のnは次の音節の頭）
+      if (lower[i] === 'n' && i + 1 < lower.length &&
+          !/[aiueoy]/.test(lower[i + 1])) {
+        result += 'ん';
+        i++;
+        continue;
+      }
+      // 末尾の 'n' → ん
+      if (lower[i] === 'n' && i === lower.length - 1) {
+        result += 'ん';
+        i++;
+        continue;
+      }
+      // 最長一致
+      let matched = false;
+      for (const key of ROMAJI_KEYS) {
+        if (lower.substring(i, i + key.length) === key) {
+          result += ROMAJI_TO_KANA[key];
+          i += key.length;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        result += text[i]; // 非ローマ字はそのまま
+        i++;
+      }
+    }
+    return result;
+  }
+
   // ランダムなひらがな（アニメーション用）
   function randomKana() {
     return KANA[Math.floor(Math.random() * SIZE)];
@@ -164,7 +238,7 @@ const Gojuon = (() => {
     toHiragana, toKatakana,
     charToIndex, indexToChar, mod,
     isKana, isKatakana,
-    toRomaji, randomKana,
+    toRomaji, fromRomaji, randomKana,
     charToGrid, gridToChar
   };
 })();
