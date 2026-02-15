@@ -76,7 +76,7 @@ const App = (() => {
   // ---- ウェルカム画面 ----
   function showWelcome() {
     const converter = document.getElementById('converter');
-    const picks = allEngines.sort(() => Math.random() - 0.5).slice(0, 8);
+    const picks = [...allEngines].sort(() => Math.random() - 0.5).slice(0, 8);
 
     converter.innerHTML = `
       <div class="welcome">
@@ -177,6 +177,7 @@ const App = (() => {
           ${isScript ? '🔮 変換' : '🔐 暗号化'}
         </button>
         ${!isScript && engine.decrypt ? '<button class="btn-swap" id="btnDecrypt">🔓 復号</button>' : ''}
+        ${isScript && engine.reversible ? '<button class="btn-swap" id="btnDecrypt">🔄 逆変換</button>' : ''}
       </div>
 
       <div class="output-section">
@@ -184,7 +185,7 @@ const App = (() => {
         <div class="output-area" id="outputArea"></div>
         <div class="output-toolbar">
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
-          ${!isScript && engine.decrypt && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
+          ${((!isScript && engine.decrypt) || (isScript && engine.reversible)) && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
           ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形出力のためコピー・転送不可。復号は入力テキストから直接実行できます</span>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
@@ -203,7 +204,8 @@ const App = (() => {
       const el = document.getElementById(`key-${cfg.id}`);
       if (!el) continue;
       if (cfg.type === 'number') {
-        keys[cfg.id] = parseInt(el.value, 10);
+        const parsed = parseInt(el.value, 10);
+        keys[cfg.id] = isNaN(parsed) ? (cfg.default || 0) : parsed;
       } else {
         keys[cfg.id] = el.value;
       }
@@ -225,17 +227,30 @@ const App = (() => {
     const btnDecrypt = document.getElementById('btnDecrypt');
     if (btnDecrypt) btnDecrypt.disabled = true;
 
+    // 前回のエラー表示をリセット
+    outputEl.style.color = '';
+
     try {
       const keys = getKeys();
       let result;
       const isScript = ['ancient','fictional','symbol','decoration'].includes(currentEngine.category);
 
       if (isScript) {
-        result = currentEngine.convert(text, keys);
+        if (mode === 'decrypt' && currentEngine.reverse) {
+          result = currentEngine.reverse(text, keys);
+        } else {
+          result = currentEngine.convert(text, keys);
+        }
       } else if (mode === 'decrypt' && currentEngine.decrypt) {
         result = currentEngine.decrypt(text, keys);
       } else {
         result = currentEngine.encrypt(text, keys);
+      }
+
+      // OTP: 自動生成された鍵をUI入力欄に書き戻す
+      if (keys._generatedKey) {
+        const keyInput = document.getElementById('key-key');
+        if (keyInput) keyInput.value = keys._generatedKey;
       }
 
       // 豚小屋暗号の特殊処理

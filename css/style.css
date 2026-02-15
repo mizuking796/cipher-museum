@@ -342,6 +342,11 @@ body {
   color: var(--text-primary);
 }
 
+.btn-swap:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* 出力エリア */
 .output-area {
   width: 100%;
