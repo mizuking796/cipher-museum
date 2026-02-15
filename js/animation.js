@@ -253,9 +253,19 @@ const CipherAnimation = (() => {
       if (xw.br) paths += `<line x1="${m+s*2}" y1="${m+s*2}" x2="${c}" y2="${c}" stroke="${stroke}" stroke-width="${sw}"/>`;
     }
 
-    // ドット
+    // ドット（格子種別の区別）
     if (dot) {
       paths += `<circle cx="16" cy="16" r="3" fill="${stroke}"/>`;
+    }
+
+    // 濁点マーク（右上に ゛）
+    if (item.dakuten === 'dakuten') {
+      paths += `<circle cx="24" cy="4" r="1.5" fill="${stroke}"/>`;
+      paths += `<circle cx="28" cy="4" r="1.5" fill="${stroke}"/>`;
+    }
+    // 半濁点マーク（右上に ゜）
+    if (item.dakuten === 'handakuten') {
+      paths += `<circle cx="26" cy="4" r="2.5" fill="none" stroke="${stroke}" stroke-width="1"/>`;
     }
 
     svg.innerHTML = paths;

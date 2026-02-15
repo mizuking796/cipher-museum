@@ -406,6 +406,15 @@ body {
 }
 .copy-feedback.show { opacity: 1; }
 
+/* 豚小屋暗号 注釈 */
+.pigpen-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
+
 /* 豚小屋暗号SVG */
 .pigpen-container {
   display: flex;

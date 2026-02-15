@@ -185,6 +185,7 @@ const App = (() => {
         <div class="output-toolbar">
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
           ${!isScript && engine.decrypt && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
+          ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形出力のためコピー・転送不可。復号は入力テキストから直接実行できます</span>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
       </div>`;

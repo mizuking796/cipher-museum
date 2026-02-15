@@ -370,10 +370,10 @@ const CipherEngines = (() => {
         const result = [];
         for (const ch of h) {
           if (Gojuon.isKana(ch)) {
-            const { base } = Gojuon.preserveDakuten(ch);
+            const { base, type } = Gojuon.preserveDakuten(ch);
             const info = PIGPEN_MAP[base];
             if (info) {
-              result.push({ ...info, original: ch });
+              result.push({ ...info, dakuten: type, original: ch });
             } else {
               result.push({ type: 'passthrough', char: ch });
             }
@@ -385,7 +385,7 @@ const CipherEngines = (() => {
       },
 
       decrypt(data) {
-        // data は [{grid, pos, dot}] の配列、またはテキスト
+        // data は [{grid, pos, dot, dakuten}] の配列、またはテキスト
         if (typeof data === 'string') return data;
         let result = '';
         for (const item of data) {
@@ -393,7 +393,11 @@ const CipherEngines = (() => {
             result += item.char;
           } else {
             const key = `${item.grid}-${item.pos}-${item.dot}`;
-            result += PIGPEN_REVERSE[key] || '?';
+            let ch = PIGPEN_REVERSE[key] || '?';
+            if (item.dakuten && item.dakuten !== 'none') {
+              ch = Gojuon.restoreDakuten(ch, item.dakuten);
+            }
+            result += ch;
           }
         }
         return result;
