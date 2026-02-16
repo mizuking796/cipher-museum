@@ -354,18 +354,65 @@ const ScriptEngines = (() => {
   };
 
   // ----------------------------------------------------------
+  // グリフ生成: 架空文字用のSVG図形を決定論的に生成
+  // ----------------------------------------------------------
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function generateGlyphSet(seed, addDots) {
+    const glyphs = {};
+    for (let i = 0; i < 26; i++) {
+      const letter = String.fromCharCode(97 + i);
+      const rng = mulberry32(i * 1337 + seed);
+      // 4象限に分散した点を生成
+      const quads = [[4,14,4,14],[18,28,4,14],[4,14,18,28],[18,28,18,28]];
+      for (let j = 3; j > 0; j--) {
+        const k = Math.floor(rng() * (j + 1));
+        [quads[j], quads[k]] = [quads[k], quads[j]];
+      }
+      const n = 3 + Math.floor(rng() * 3); // 3-5 points
+      const pts = [];
+      for (let j = 0; j < n; j++) {
+        const q = quads[j % 4];
+        pts.push([
+          q[0] + Math.floor(rng() * ((q[1] - q[0]) / 2 + 1)) * 2,
+          q[2] + Math.floor(rng() * ((q[3] - q[2]) / 2 + 1)) * 2
+        ]);
+      }
+      let d = `M${pts[0][0]},${pts[0][1]}`;
+      for (let j = 1; j < pts.length; j++) d += `L${pts[j][0]},${pts[j][1]}`;
+      if (rng() < 0.35) d += 'Z';
+      const dots = [];
+      if (addDots) {
+        const nd = 1 + (rng() < 0.5 ? 1 : 0);
+        for (let j = 0; j < nd; j++) {
+          dots.push([4 + Math.floor(rng() * 13) * 2, 4 + Math.floor(rng() * 13) * 2]);
+        }
+      }
+      glyphs[letter] = { path: d, dots };
+    }
+    return glyphs;
+  }
+
+  const AUREBESH_GLYPHS = generateGlyphSet(42, false);
+  const SGA_GLYPHS = generateGlyphSet(7777, true);
+
+  // 丸囲み文字（コピー用）
+  const CIRCLED_MAP = {};
+  for (let i = 0; i < 26; i++) {
+    CIRCLED_MAP[String.fromCharCode(0x61 + i)] = String.fromCodePoint(0x24D0 + i);
+    CIRCLED_MAP[String.fromCharCode(0x41 + i)] = String.fromCodePoint(0x24B6 + i);
+  }
+
+  // ----------------------------------------------------------
   // 5. オーレベシュ (Aurebesh)
   // ----------------------------------------------------------
-  const CIRCLED_UPPER = {};
-  const CIRCLED_LOWER = {};
-  for (let i = 0; i < 26; i++) {
-    const upper = String.fromCharCode(0x41 + i); // A-Z
-    const lower = String.fromCharCode(0x61 + i); // a-z
-    CIRCLED_UPPER[upper] = String.fromCodePoint(0x24B6 + i); // Ⓐ-Ⓩ
-    CIRCLED_LOWER[lower] = String.fromCodePoint(0x24D0 + i); // ⓐ-ⓩ
-  }
-  const CIRCLED_MAP = { ...CIRCLED_UPPER, ...CIRCLED_LOWER };
-
   const aurebesh = {
     id: 'aurebesh',
     name: 'オーレベシュ',
@@ -374,25 +421,30 @@ const ScriptEngines = (() => {
     era: 'スター・ウォーズ銀河',
     difficulty: 1,
     icon: '\u2B50',
-    description: 'スター・ウォーズ世界の公用文字。Webフォントで表示します。',
+    description: 'スター・ウォーズ世界の公用文字。独自の幾何学グリフで表示します。',
     keyConfig: [],
     convert(text) {
       const romaji = textToRomaji(text);
-      // フォントベースの表示: ローマ字をそのまま返す
-      // Webフォントが利用できない場合のfallback用に丸囲み文字も用意
-      return romaji;
-    },
-    fallbackConvert(text) {
-      const romaji = textToRomaji(text);
-      return mapRomaji(romaji, CIRCLED_MAP);
+      const circled = mapRomaji(romaji, CIRCLED_MAP);
+      const glyphs = [];
+      for (const ch of romaji) {
+        const lower = ch.toLowerCase();
+        if (AUREBESH_GLYPHS[lower]) {
+          glyphs.push({ ...AUREBESH_GLYPHS[lower], letter: lower });
+        } else if (ch === ' ' || ch === '\u3000') {
+          glyphs.push({ letter: ' ', space: true });
+        } else {
+          glyphs.push({ letter: ch, passthrough: true });
+        }
+      }
+      return { glyphs, romaji, circled };
     },
     reverse(text) {
       return Gojuon.fromRomaji(text);
     },
     reversible: true,
-    animationType: 'morph',
-    outputType: 'font',
-    fontClass: 'aurebesh-font'
+    animationType: 'glyph',
+    outputType: 'glyph'
   };
 
   // ----------------------------------------------------------
@@ -406,23 +458,30 @@ const ScriptEngines = (() => {
     era: 'Commander Keen / Minecraft',
     difficulty: 1,
     icon: '\u2694',
-    description: 'Minecraftのエンチャントテーブルでおなじみの架空文字。',
+    description: 'Minecraftのエンチャントテーブルでおなじみの架空文字。独自グリフで表示。',
     keyConfig: [],
     convert(text) {
       const romaji = textToRomaji(text);
-      return romaji;
-    },
-    fallbackConvert(text) {
-      const romaji = textToRomaji(text);
-      return mapRomaji(romaji, CIRCLED_MAP);
+      const circled = mapRomaji(romaji, CIRCLED_MAP);
+      const glyphs = [];
+      for (const ch of romaji) {
+        const lower = ch.toLowerCase();
+        if (SGA_GLYPHS[lower]) {
+          glyphs.push({ ...SGA_GLYPHS[lower], letter: lower });
+        } else if (ch === ' ' || ch === '\u3000') {
+          glyphs.push({ letter: ' ', space: true });
+        } else {
+          glyphs.push({ letter: ch, passthrough: true });
+        }
+      }
+      return { glyphs, romaji, circled };
     },
     reverse(text) {
       return Gojuon.fromRomaji(text);
     },
     reversible: true,
-    animationType: 'morph',
-    outputType: 'font',
-    fontClass: 'sga-font'
+    animationType: 'glyph',
+    outputType: 'glyph'
   };
 
   // ----------------------------------------------------------

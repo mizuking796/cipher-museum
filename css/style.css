@@ -432,15 +432,32 @@ body {
   vertical-align: middle;
 }
 
-/* フォントベース出力（オーレベシュ、SGA） */
-.output-area.aurebesh-font {
-  font-family: 'Aurebesh', monospace;
-  letter-spacing: 2px;
+/* グリフ出力（オーレベシュ、SGA） */
+.glyph-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
 }
 
-.output-area.sga-font {
-  font-family: 'SGA', monospace;
-  letter-spacing: 2px;
+.glyph-char {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.glyph-space {
+  width: 16px;
+  display: inline-block;
+}
+
+.glyph-passthrough {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  color: var(--text-secondary);
 }
 
 /* ---- 右パネル: 解説 ---- */

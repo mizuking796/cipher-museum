@@ -262,6 +262,58 @@ const CipherAnimation = (() => {
     return svg;
   }
 
+  // グリフ（架空文字）用: SVG描画アニメーション
+  async function animateGlyph(outputEl, glyphData) {
+    outputEl.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'glyph-container';
+    outputEl.appendChild(container);
+
+    for (const item of glyphData) {
+      let el;
+      if (item.space) {
+        el = document.createElement('span');
+        el.className = 'glyph-space';
+      } else if (item.passthrough) {
+        el = document.createElement('span');
+        el.className = 'glyph-passthrough';
+        el.textContent = item.letter;
+      } else {
+        el = createGlyphSVG(item);
+      }
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.5) rotate(-30deg)';
+      el.style.transition = 'all 0.3s ease';
+      container.appendChild(el);
+
+      await sleep(40);
+      el.style.opacity = '1';
+      el.style.transform = 'scale(1) rotate(0deg)';
+      await sleep(80);
+    }
+  }
+
+  // グリフSVG生成
+  function createGlyphSVG(item) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '36');
+    svg.setAttribute('height', '36');
+    svg.setAttribute('viewBox', '0 0 32 32');
+    svg.classList.add('glyph-char');
+
+    const stroke = '#c9a84c'; // accent color
+    let html = `<path d="${item.path}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    if (item.dots) {
+      for (const [cx, cy] of item.dots) {
+        html += `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${stroke}"/>`;
+      }
+    }
+
+    svg.innerHTML = html;
+    return svg;
+  }
+
   // 統合アニメーション関数
   async function animate(outputEl, inputText, finalText, type, options = {}) {
     // テキストが長すぎる場合はアニメーション短縮
@@ -271,8 +323,8 @@ const CipherAnimation = (() => {
       adjustedOpts.duration = Math.max(100, CHAR_DURATION - len * 3);
       adjustedOpts.delay = Math.max(15, CHAR_DELAY - len);
     }
-    if (len > 100) {
-      // 100文字超はアニメーションスキップ
+    if (len > 100 && type !== 'pigpen' && type !== 'glyph') {
+      // 100文字超はアニメーションスキップ（SVG系は除く）
       outputEl.textContent = finalText;
       return;
     }
@@ -301,6 +353,9 @@ const CipherAnimation = (() => {
         break;
       case 'pigpen':
         await animatePigpen(outputEl, finalText);
+        break;
+      case 'glyph':
+        await animateGlyph(outputEl, finalText);
         break;
       default:
         outputEl.textContent = finalText;

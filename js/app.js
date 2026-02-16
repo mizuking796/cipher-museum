@@ -125,6 +125,11 @@ const App = (() => {
 
     renderConverter(engine);
     renderInfoPanel(engine);
+
+    // スクロール位置をトップにリセット
+    document.getElementById('converter').scrollTop = 0;
+    document.getElementById('infoPanel').scrollTop = 0;
+    window.scrollTo(0, 0);
   }
 
   // ---- 変換エリア描画 ----
@@ -187,7 +192,7 @@ const App = (() => {
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
           ${((!isScript && engine.decrypt) || (isScript && engine.reversible)) && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
           ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形出力のためコピー・転送不可。復号は入力テキストから直接実行できます</span>' : ''}
-          ${engine.outputType === 'font' ? '<span class="pigpen-note">※ Webフォント未搭載のためローマ字で表示。コピー内容もローマ字になります</span>' : ''}
+          ${engine.outputType === 'glyph' ? '<span class="pigpen-note">※ グリフ表示。コピーは丸文字(ⓐ-ⓩ)で転写されます</span>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
       </div>`;
@@ -228,8 +233,10 @@ const App = (() => {
     const btnDecrypt = document.getElementById('btnDecrypt');
     if (btnDecrypt) btnDecrypt.disabled = true;
 
-    // 前回のエラー表示をリセット
+    // 前回の結果をリセット
     outputEl.style.color = '';
+    delete outputEl.dataset.copyText;
+    delete outputEl.dataset.inputText;
 
     try {
       const keys = getKeys();
@@ -257,12 +264,14 @@ const App = (() => {
       // 豚小屋暗号の特殊処理
       if (currentEngine.outputType === 'pigpen' && Array.isArray(result)) {
         await CipherAnimation.animate(outputEl, text, result, 'pigpen');
-      } else {
-        // フォントベース出力
+      } else if (currentEngine.outputType === 'glyph' && result && result.glyphs) {
+        // グリフ出力（架空文字）
         outputEl.className = 'output-area';
-        if (currentEngine.outputType === 'font' && currentEngine.fontClass) {
-          outputEl.classList.add(currentEngine.fontClass);
-        }
+        outputEl.dataset.copyText = result.circled;
+        outputEl.dataset.inputText = result.romaji;
+        await CipherAnimation.animate(outputEl, text, result.glyphs, 'glyph');
+      } else {
+        outputEl.className = 'output-area';
 
         const animType = currentEngine.animationType || 'slot';
         await CipherAnimation.animate(outputEl, text, result, animType);
@@ -345,7 +354,8 @@ const App = (() => {
   // ---- コピー機能 ----
   function copyOutput() {
     const outputEl = document.getElementById('outputArea');
-    const text = outputEl.textContent || outputEl.innerText;
+    // グリフ出力の場合は丸文字テキストをコピー
+    const text = outputEl.dataset.copyText || outputEl.textContent || outputEl.innerText;
     if (!text.trim()) return;
 
     const showFeedback = (msg) => {
@@ -385,7 +395,8 @@ const App = (() => {
     const outputEl = document.getElementById('outputArea');
     const inputEl = document.getElementById('inputText');
     if (!outputEl || !inputEl) return;
-    const text = outputEl.textContent || outputEl.innerText;
+    // グリフ出力の場合はローマ字を送る（逆変換用）
+    const text = outputEl.dataset.inputText || outputEl.textContent || outputEl.innerText;
     if (!text.trim()) return;
     inputEl.value = text;
     inputEl.focus();
