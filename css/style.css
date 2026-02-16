@@ -432,32 +432,33 @@ body {
   vertical-align: middle;
 }
 
-/* グリフ出力（オーレベシュ、SGA） */
-.glyph-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  align-items: center;
+/* フォント出力（オーレベシュ、SGA） */
+@font-face {
+  font-family: 'Aurebesh';
+  src: url('../fonts/aurebesh.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-.glyph-char {
-  display: inline-block;
-  vertical-align: middle;
+@font-face {
+  font-family: 'SGA';
+  src: url('../fonts/sga.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-.glyph-space {
-  width: 16px;
-  display: inline-block;
+.aurebesh-font {
+  font-family: 'Aurebesh', monospace;
+  font-size: 28px;
+  letter-spacing: 2px;
 }
 
-.glyph-passthrough {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  font-size: 16px;
-  color: var(--text-secondary);
+.sga-font {
+  font-family: 'SGA', monospace;
+  font-size: 28px;
+  letter-spacing: 2px;
 }
 
 /* ---- 右パネル: 解説 ---- */

@@ -192,7 +192,7 @@ const App = (() => {
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
           ${((!isScript && engine.decrypt) || (isScript && engine.reversible)) && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
           ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形出力のためコピー・転送不可。復号は入力テキストから直接実行できます</span>' : ''}
-          ${engine.outputType === 'glyph' ? '<span class="pigpen-note">※ グリフ表示。コピーは丸文字(ⓐ-ⓩ)で転写されます</span>' : ''}
+          ${engine.outputType === 'font' ? '<span class="pigpen-note">※ Webフォントで表示。コピー内容はローマ字になります</span>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
       </div>`;
@@ -233,10 +233,8 @@ const App = (() => {
     const btnDecrypt = document.getElementById('btnDecrypt');
     if (btnDecrypt) btnDecrypt.disabled = true;
 
-    // 前回の結果をリセット
+    // 前回のエラー表示をリセット
     outputEl.style.color = '';
-    delete outputEl.dataset.copyText;
-    delete outputEl.dataset.inputText;
 
     try {
       const keys = getKeys();
@@ -264,14 +262,12 @@ const App = (() => {
       // 豚小屋暗号の特殊処理
       if (currentEngine.outputType === 'pigpen' && Array.isArray(result)) {
         await CipherAnimation.animate(outputEl, text, result, 'pigpen');
-      } else if (currentEngine.outputType === 'glyph' && result && result.glyphs) {
-        // グリフ出力（架空文字）
-        outputEl.className = 'output-area';
-        outputEl.dataset.copyText = result.circled;
-        outputEl.dataset.inputText = result.romaji;
-        await CipherAnimation.animate(outputEl, text, result.glyphs, 'glyph');
       } else {
+        // フォントベース出力
         outputEl.className = 'output-area';
+        if (currentEngine.outputType === 'font' && currentEngine.fontClass) {
+          outputEl.classList.add(currentEngine.fontClass);
+        }
 
         const animType = currentEngine.animationType || 'slot';
         await CipherAnimation.animate(outputEl, text, result, animType);
@@ -354,8 +350,7 @@ const App = (() => {
   // ---- コピー機能 ----
   function copyOutput() {
     const outputEl = document.getElementById('outputArea');
-    // グリフ出力の場合は丸文字テキストをコピー
-    const text = outputEl.dataset.copyText || outputEl.textContent || outputEl.innerText;
+    const text = outputEl.textContent || outputEl.innerText;
     if (!text.trim()) return;
 
     const showFeedback = (msg) => {
@@ -395,10 +390,14 @@ const App = (() => {
     const outputEl = document.getElementById('outputArea');
     const inputEl = document.getElementById('inputText');
     if (!outputEl || !inputEl) return;
-    // グリフ出力の場合はローマ字を送る（逆変換用）
-    const text = outputEl.dataset.inputText || outputEl.textContent || outputEl.innerText;
+    const text = outputEl.textContent || outputEl.innerText;
     if (!text.trim()) return;
     inputEl.value = text;
+    // フォント出力の場合は入力欄にも同じフォントを適用
+    inputEl.classList.remove('aurebesh-font', 'sga-font');
+    if (currentEngine && currentEngine.fontClass) {
+      inputEl.classList.add(currentEngine.fontClass);
+    }
     inputEl.focus();
     // 入力欄ハイライト
     inputEl.style.borderColor = 'var(--green)';
