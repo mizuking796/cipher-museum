@@ -14,21 +14,25 @@
 - 全処理クライアント完結（API不使用）
 - IIFE パターンでモジュール分離
 - CSP（Content Security Policy）設定済み
+- Webフォント: Aurebesh / SGA（WOFF2、ローカルホスト）
 
-## ファイル構成（10ファイル / 3,829行）
+## ファイル構成（11ファイル / 3,835行 + フォント2ファイル）
 
 ```
 cipher-museum/
 ├── index.html          (67行)   — SPA構造、3カラムレイアウト
 ├── css/
-│   └── style.css       (665行)  — ダーク博物館テーマ
+│   └── style.css       (683行)  — ダーク博物館テーマ + @font-face
 ├── js/
 │   ├── gojuon.js       (244行)  — 五十音80文字ユーティリティ（全エンジンの共通基盤）
 │   ├── ciphers.js      (913行)  — 暗号エンジン12種
-│   ├── scripts.js      (661行)  — 文字変換エンジン8種（逆変換対応）
-│   ├── episodes.js     (465行)  — 教育コンテンツ20方式分
+│   ├── scripts.js      (639行)  — 文字変換エンジン8種（逆変換対応）
+│   ├── episodes.js     (465行)  — 教育コンテンツ20方式分（ファクトチェック済）
 │   ├── animation.js    (316行)  — カシャカシャ変換アニメーション4種
-│   └── app.js          (498行)  — メインコントローラー
+│   └── app.js          (508行)  — メインコントローラー
+├── fonts/
+│   ├── aurebesh.woff2  (4.1KB)  — Aurebesh書体（a-z subset, Neale Davidson作）
+│   └── sga.woff2       (6.1KB)  — SGA書体（a-z subset, CC0ライセンス）
 ├── favicon.svg                  — SVGファビコン
 ├── favicon.png                  — PNGファビコン（192x192）
 └── REFERENCE.md
@@ -98,8 +102,8 @@ gojuon.js → ciphers.js → scripts.js → episodes.js → animation.js → app
 | `rune` | ルーン文字 | ancient | ローマ字→Elder Futhark | text | OK（c/k,j/y補正付） |
 | `linearb` | 線文字B | ancient | ローマ字→音節文字 | text | OK（da/za,ta/wa衝突あり） |
 | `braille` | 点字 | symbol | かな→六点点字 | text | OK |
-| `aurebesh` | オーレベシュ | fictional | ローマ字→フォント表示 | font | OK |
-| `sga` | 銀河標準文字 | fictional | ローマ字→フォント表示 | font | OK |
+| `aurebesh` | オーレベシュ | fictional | ローマ字→Webフォント表示 | font | OK |
+| `sga` | 銀河標準文字 | fictional | ローマ字→Webフォント表示 | font | OK |
 | `mathsymbols` | 数学用記号文字 | decoration | ローマ字→13書体変種 | text | OK（全13書体対応） |
 | `upsidedown` | 逆さ文字 | decoration | ローマ字→IPA文字+逆順 | text | OK |
 
@@ -149,6 +153,27 @@ fictional(架空文字), symbol(符号・記号), decoration(装飾変換)
 ### パフォーマンス調整
 - 30文字超: アニメーション時間短縮
 - 100文字超: アニメーションスキップ（即時表示）
+- ANCIENT_POOL: 配列化（非BMP文字のサロゲートペア分断防止）
+- 文字数カウント: `[...text].length` 使用（非BMP対応）
+
+## Webフォント（架空文字）
+
+### 仕組み
+```
+日本語テキスト → toRomaji() → ローマ字テキスト → CSSフォントで表示
+```
+- `outputType: 'font'` + `fontClass: 'aurebesh-font'` or `'sga-font'`
+- 出力エリアと入力テキストエリアの両方にフォントクラスを適用可能
+- コピー時はローマ字テキストがクリップボードに入る
+
+### フォント出自
+| フォント | 作者 | 出自 | ライセンス | サイズ |
+|---|---|---|---|---|
+| Aurebesh | Neale Davidson | wfonts.com | © 2013 | 4.1KB (a-z subset WOFF2) |
+| SGA | standardgalactic/alphabet | GitHub | CC0 | 6.1KB (a-z subset WOFF2) |
+
+- 元のSGA TTFは1.9MB → pyftsubsetでa-z subsetに絞りWOFF2変換 → 6.1KB
+- CSP: `font-src 'self'` で自ホストフォントのみ許可
 
 ## 暗号エンジン共通パターン
 
@@ -210,17 +235,17 @@ transposeKana(text, fn)
 - **trivia**: 豆知識
 - **related**: 関連方式ID配列（リンクチップ表示）
 
+### ファクトチェック（2026-02-16実施）
+- 全20方式・約92項目をWebSearch調査
+- 修正15件適用済み（人名・年代・数値・出典の精度向上）
+- 出典が曖昧な逸話には「一説によれば」等の留保表現を追加
+
 ## 既知の制限事項
 
 ### 豚小屋暗号の出力
 - SVG出力のため `textContent` が取得できない
 - 「入力に送る」ボタンは非表示（`outputType === 'pigpen'` で判定）
 - コピーボタンもSVGの場合は空文字になる
-
-### フォント依存（オーレベシュ/SGA）
-- Webフォント未搭載のため、現状はローマ字テキスト表示
-- `fontClass` プロパティでCSS切替準備済み
-- fallbackConvert() でCircled文字（Ⓐ-Ⓩ）代替可能
 
 ### 点字の小書きかな
 - ぁぃぅぇぉっゃゅょは点字マッピング未対応（パスルー）
@@ -230,7 +255,6 @@ transposeKana(text, fn)
 - **ローマ字の曖昧性**: ん+母音始まりの音（例: きんえん）はローマ字では区別不能（kinen = きねん or きんえん）
 - **ルーン文字**: c/k/q が同一ルーン。`kh→ch`, `yi→ji` の補正あり。`j/y` の曖昧性は残る（じゃ/や）
 - **線文字B**: da/za, ta/wa, de/ze, du/zu, te/we, ti/wi, to/wo が同一音節文字（Linear B の音節体系の制限）
-- **オーレベシュ/SGA**: Webフォント未搭載のためローマ字テキストを逆変換（表示上のグリフは逆変換不可）
 
 ## CSSテーマ変数
 ```css
@@ -247,6 +271,16 @@ transposeKana(text, fn)
 ```
 
 ## バージョン履歴
+
+### v1.3 (2026-02-16)
+- Aurebesh/SGAをWebフォント表示に変更（SVGグリフ自動生成方式を廃止）
+  - aurebesh.woff2 (4.1KB): Neale Davidson作、a-z subset
+  - sga.woff2 (6.1KB): standardgalactic/alphabet CC0、a-z subset
+  - 入力テキストにもフォント適用可能（「入力に送る」時）
+- BUG修正: 非BMP文字のlength計算を`[...text].length`に（animation.js）
+- BUG修正: ANCIENT_POOLを配列化（サロゲートペア分断防止）
+- スクロール位置リセット（エンジン切替時に中央カラムを先頭に戻す）
+- 教育コンテンツ全20方式ファクトチェック（約92項目検証、15件修正）
 
 ### v1.2 (2026-02-15)
 - 全8文字変換エンジンに逆変換（外国文字→日本語）を追加
@@ -265,14 +299,7 @@ transposeKana(text, fn)
 - 豚小屋暗号: 80文字対応（5格子分配、dakutenプロパティ廃止）
 - 忍びいろは: 80文字対応（IROHA_ORDER/IROHA_SYMBOLS拡張）
 - エニグマ: 80文字ローター5種+40ペアリフレクター再生成
-- 包括バグ修正8件:
-  - showWelcome()の破壊的ソート修正
-  - parseInt NaN フォールバック
-  - エラー表示色リセット
-  - OTP自動生成鍵のUI書き戻し
-  - 可逆ScriptEngine(点字/逆さ文字)の逆変換ボタン追加
-  - btn-swap:disabled スタイル追加
-  - CSP メタタグ追加
+- 包括バグ修正8件
 - ファビコン追加（PNG 192x192 + SVG）
 
 ### v1.0 (2026-02-15)
@@ -282,8 +309,3 @@ transposeKana(text, fn)
 - アニメーション4種（slot/move/morph/pigpen）
 - 3カラムレスポンシブレイアウト
 - モバイル対応（サイドバースライドイン + ボトムタブ）
-- XOR暗号をコードポイントXOR方式に修正（mod 46 非全単射バグ修正）
-- 復号フロー改善（「入力に送る」ボタン追加）
-- ヘッダーロゴクリックでトップ画面復帰
-- Pigpen SVG出力で「入力に送る」非表示化
-- プレースホルダー改善（暗号化/復号のヒント表示）
