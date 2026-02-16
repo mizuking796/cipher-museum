@@ -181,7 +181,7 @@ const App = (() => {
         <button class="btn-convert" id="btnEncrypt">
           ${isScript ? '🔮 変換' : '🔐 暗号化'}
         </button>
-        ${!isScript && engine.decrypt ? '<button class="btn-swap" id="btnDecrypt">🔓 復号</button>' : ''}
+        ${!isScript && engine.decrypt && engine.outputType !== 'pigpen' ? '<button class="btn-swap" id="btnDecrypt">🔓 復号</button>' : ''}
         ${isScript && engine.reversible ? '<button class="btn-swap" id="btnDecrypt">🔄 逆変換</button>' : ''}
       </div>
 
@@ -191,7 +191,7 @@ const App = (() => {
         <div class="output-toolbar">
           <button class="btn-copy" id="btnCopy">📋 コピー</button>
           ${((!isScript && engine.decrypt) || (isScript && engine.reversible)) && engine.outputType !== 'pigpen' ? '<button class="btn-copy" id="btnToInput">↑ 入力に送る</button>' : ''}
-          ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形出力のためコピー・転送不可。復号は入力テキストから直接実行できます</span>' : ''}
+          ${engine.outputType === 'pigpen' ? '<span class="pigpen-note">※ 図形（SVG）で出力されるため、コピー・転送・復号はできません</span>' : ''}
           ${engine.outputType === 'font' ? '<span class="pigpen-note">※ Webフォントで表示。コピー内容はローマ字になります</span>' : ''}
           <span class="copy-feedback" id="copyFeedback">コピーしました</span>
         </div>
