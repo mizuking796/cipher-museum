@@ -1,0 +1,29 @@
+{
+  "name": "cipher-museum",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test_btn.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:e2e": "npx playwright test tests/flows.spec.js",
+    "test:visual": "npx playwright test tests/visual-regression.spec.js",
+    "test:visual:update": "npx playwright test tests/visual-regression.spec.js --update-snapshots",
+    "test:visual:update:linux": "docker run --rm -v $(pwd):/work -w /work mcr.microsoft.com/playwright:v1.59.1-noble sh -c 'npx playwright test tests/visual-regression.spec.js --update-snapshots'",
+    "test:links": "npx playwright test tests/link-checker.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mizuking796/cipher-museum.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mizuking796/cipher-museum/issues"
+  },
+  "homepage": "https://github.com/mizuking796/cipher-museum#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}
